@@ -1,0 +1,11 @@
+nltk
+langchain
+langchain-community
+langchain-core
+unstructured
+python-docx
+sentence-transformers
+transformers
+torch
+accelerate
+chromadb
