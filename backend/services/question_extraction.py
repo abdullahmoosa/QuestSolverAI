@@ -1,6 +1,6 @@
-
-
-
+import nltk
+import time
+import os
 from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
@@ -12,19 +12,11 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 
-
-# from langchain_community.embeddings import HuggingFaceEmbeddings
-# from langchain_community.vectorstores import FAISS
-# from langchain_community.llms import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 
-# from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-# from langchain_openai import ChatOpenAI
-import nltk
-import time
-import os
 
 nltk.download("punkt")
+
 
 def load_docx(file_path):
     loader = UnstructuredWordDocumentLoader(file_path)
@@ -34,7 +26,7 @@ def load_docx(file_path):
 
 
 def split_documents(documents):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=1500)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=2500)
     chunks = text_splitter.split_documents(documents)
     document = chunks[0]
     print(document.page_content)
@@ -80,10 +72,10 @@ def create_question_extraction_pipeline(vectorstore, llm):
 
 def extract_questions(qa_chain):
     query = """
-    [INST] Based on the content of the document, find all the questions for assesment task 1. 
-    Format your response as a numbered list. [/INST]
+    [INST] Based on the content of the document, find all the questions for assesment task 1. Make sure you extract all the questions. Format your response as a numbered list and if found nested then use bulleted list for the nested items.
+    [/INST]
     """
-    result = qa_chain({"query": query})
+    result = qa_chain.invoke({"query": query})
     return result["result"]
 
 
@@ -92,10 +84,8 @@ def main():
 
     documents = load_docx(file_path)
     splits = split_documents(documents)
-    # for i in range(len(splits)):
-    #   print(f'======splits[{i}]========== {splits[i]}\n\n')
     vectorstore = create_vector_store(splits)
-    llm = setup_llm()  # need to use opeanai here
+    llm = setup_llm()
 
     start_time = time.time()
     qa_chain = create_question_extraction_pipeline(vectorstore, llm)
