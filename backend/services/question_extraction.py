@@ -16,6 +16,7 @@ from langchain.chains import RetrievalQA
 
 
 nltk.download("punkt")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 def load_docx(file_path):
@@ -76,11 +77,17 @@ def extract_questions(qa_chain):
     [/INST]
     """
     result = qa_chain.invoke({"query": query})
-    return result["result"]
+    questions = result["result"]
+
+    # Save the questions to a text file
+    with open("questions.txt", "w") as file:
+        file.write(questions)
+
+    return questions
 
 
 def main():
-    file_path = "BSBFIN501 Student Assessment Tasks.docx"
+    file_path = "docs/financial_data/BSBFIN501 Student Assessment Tasks.docx"
 
     documents = load_docx(file_path)
     splits = split_documents(documents)
@@ -94,6 +101,7 @@ def main():
     end_time = time.time()
     print("Extracted Questions:")
     print(questions)
+    print(f"Questions saved to 'questions.txt'")
     print(f"Time spent: {end_time-start_time} seconds")
 
 

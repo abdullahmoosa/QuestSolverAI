@@ -71,11 +71,73 @@ def answer_questions(qa_chain,input):
     query = f"""
     [INST] Based on the provided context, answer the question. query: {input} [/INST]
     """
-    result = qa_chain({"query": query})
+    result = qa_chain.invoke({"query": query})
     return result["result"]
 
+def read_questions(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    questions = []
+    current_question = ""
+
+    for line in lines:
+        line = line.strip()  # Remove leading and trailing whitespace
+
+        # Check if the line starts with a number followed by a period, indicating a new question
+        if line and line[0].isdigit() and line[1] == '.':
+            if current_question:  # If there's a current question, save it
+                questions.append(current_question)
+            current_question = line  # Start a new question
+        else:
+            # Append to the current question if it's a continuation
+            if current_question:
+                current_question += " " + line
+
+    # Append the last question
+    if current_question:
+        questions.append(current_question)
+
+    return questions
+
+    return questions
+
+def read_and_clean_questions(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    questions = []
+    current_question = ""
+
+    for line in lines:
+        line = line.strip()  # Remove leading and trailing whitespace
+
+        # Check if the line starts with a number followed by a period, indicating a new question
+        if line and line[0].isdigit() and line[1] == '.':
+            if current_question:  # If there's a current question, save it
+                questions.append(current_question)
+            current_question = line  # Start a new question
+        else:
+            # Append to the current question if it's a continuation
+            if current_question:
+                current_question += " " + line
+
+    # Append the last question
+    if current_question:
+        questions.append(current_question)
+
+    # Remove numbering from each question
+    cleaned_questions = [q.split('. ', 1)[-1] for q in questions]
+
+    return cleaned_questions
+
 def main():
-    file_path = "/Users/relisource/Personal Projects/QuestSolver/docs/BSBFIN501 Student Assessment Tasks.docx"
+    questions = read_questions("questions.txt")
+    cleaned_questions = read_and_clean_questions("questions.txt")
+    print(cleaned_questions)
+    print("------------------------")
+
+    file_path = "/Users/relisource/Personal Projects/QuestSolver/docs/BSBFIN501 Student Guide.docx"
 
     documents = load_docx(file_path)
     # print(f"documents : {documents}")
@@ -83,15 +145,23 @@ def main():
     vectorstore = create_vector_store(splits)
     llm = setup_llm()  # need to use opeanai here
 
-    start_time = time.time()
     qa_chain = create_question_extraction_pipeline(vectorstore, llm)
-    answer = answer_questions(qa_chain,"List three types of budgets.")
-    print(f"answer : {answer}")
-    end_time = time.time()
+    print("----------------------------------")
+    print("\n")
+    for index, question in enumerate(cleaned_questions):
+        start_time = time.time()
+        answer = answer_questions(qa_chain,question)
+        end_time = time.time()
+        print(f"question {index+1}: {question}")
+        print(f"answer : {answer}")
+        print(f"Time spent: {end_time-start_time} seconds")
+        print("--------------------------------")
+        print("\n")
+    # answer = answer_questions(qa_chain,"List three types of budgets.")
+    # print(f"answer : {answer}")
+    # end_time = time.time()
     # print("Extracted Questions:")
     # print(questions)
-    print(f"Time spent: {end_time-start_time} seconds")
-
 
 if __name__ == "__main__":
     main()
