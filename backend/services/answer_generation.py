@@ -69,7 +69,7 @@ def setup_llm():
 
 def answer_questions(qa_chain,input):
     query = f"""
-    [INST] Based on the provided context, answer the question. query: {input} [/INST]
+    [INST] You are a question answering chatbot. Based on the provided context, first analyze the whole context of the document including headings and sub headings of each chunk and then answer the question.question:query: {input} [/INST]
     """
     result = qa_chain.invoke({"query": query})
     return result["result"]
@@ -131,37 +131,40 @@ def read_and_clean_questions(file_path):
 
     return cleaned_questions
 
+def save_to_file(questions, answers, output_file):
+    with open(output_file, "w") as file:
+        for index, (question, answer) in enumerate(zip(questions, answers)):
+            file.write(f"{question}\n")
+            file.write(f"Answer: {answer}\n")
+            # file.write(f"Time spent: {answer['time_spent']} seconds\n")
+            file.write("-" * 40 + "\n\n")
+
 def main():
     questions = read_questions("questions.txt")
-    cleaned_questions = read_and_clean_questions("questions.txt")
-    print(cleaned_questions)
-    print("------------------------")
-
-    file_path = "/Users/relisource/Personal Projects/QuestSolver/docs/BSBFIN501 Student Guide.docx"
+    # cleaned_questions = read_and_clean_questions("questions.txt")
+    print("Cleaning questions...")
+    
+    file_path = "/Users/relisource/Personal Projects/QuestSolver/docs/financial_data/BSBFIN501 Student Guide.docx"
 
     documents = load_docx(file_path)
-    # print(f"documents : {documents}")
     splits = split_documents(documents)
     vectorstore = create_vector_store(splits)
-    llm = setup_llm()  # need to use opeanai here
+    llm = setup_llm()
 
     qa_chain = create_question_extraction_pipeline(vectorstore, llm)
-    print("----------------------------------")
-    print("\n")
-    for index, question in enumerate(cleaned_questions):
+    
+    answers = []
+    print("Answering questions... This might take some time.")
+    for question in questions:
         start_time = time.time()
-        answer = answer_questions(qa_chain,question)
+        answer = answer_questions(qa_chain, question)
         end_time = time.time()
-        print(f"question {index+1}: {question}")
-        print(f"answer : {answer}")
-        print(f"Time spent: {end_time-start_time} seconds")
-        print("--------------------------------")
-        print("\n")
-    # answer = answer_questions(qa_chain,"List three types of budgets.")
-    # print(f"answer : {answer}")
-    # end_time = time.time()
-    # print("Extracted Questions:")
-    # print(questions)
+        
+        answers.append(answer)
+    
+    output_file = "questions_and_answers.txt"
+    save_to_file(questions, answers, output_file)
+    print(f"Questions and answers saved to {output_file}")
 
 if __name__ == "__main__":
     main()
