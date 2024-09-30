@@ -80,21 +80,84 @@ def answer_questions(qa_chain,input):
         A dictionary containing the answer and its source context
     """
     query = f"""
-    [INST] You are a question answering chatbot. Based on the provided context, first analyze the whole context of the document including headings and sub headings of each chunk and then answer the question. Provide source of the answer.question: {input} [/INST]
+    [INST] You are a question answering chatbot. Based on the provided context, first analyze the whole context of the document including headings and sub headings of each chunk and then answer the question.question:query: {input} [/INST]
     """
     result = qa_chain.invoke({"query": query})
     return result["result"]
+
+def read_questions(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    questions = []
+    current_question = ""
+
+    for line in lines:
+        line = line.strip()  # Remove leading and trailing whitespace
+
+        # Check if the line starts with a number followed by a period, indicating a new question
+        if line and line[0].isdigit() and line[1] == '.':
+            if current_question:  # If there's a current question, save it
+                questions.append(current_question)
+            current_question = line  # Start a new question
+        else:
+            # Append to the current question if it's a continuation
+            if current_question:
+                current_question += " " + line
+
+    # Append the last question
+    if current_question:
+        questions.append(current_question)
+
+    return questions
+
+    return questions
+
+def read_and_clean_questions(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    questions = []
+    current_question = ""
+
+    for line in lines:
+        line = line.strip()  # Remove leading and trailing whitespace
+
+        # Check if the line starts with a number followed by a period, indicating a new question
+        if line and line[0].isdigit() and line[1] == '.':
+            if current_question:  # If there's a current question, save it
+                questions.append(current_question)
+            current_question = line  # Start a new question
+        else:
+            # Append to the current question if it's a continuation
+            if current_question:
+                current_question += " " + line
+
+    # Append the last question
+    if current_question:
+        questions.append(current_question)
+
+    # Remove numbering from each question
+    cleaned_questions = [q.split('. ', 1)[-1] for q in questions]
+
+    return cleaned_questions
+
+def save_to_file(questions, answers, output_file):
+    with open(output_file, "w") as file:
+        for index, (question, answer) in enumerate(zip(questions, answers)):
+            file.write(f"{question}\n")
+            file.write(f"Answer: {answer}\n")
+            # file.write(f"Time spent: {answer['time_spent']} seconds\n")
+            file.write("-" * 40 + "\n\n")
 
 def main():
     file_path = "/Users/relisource/Personal Projects/QuestSolver/docs/BSBFIN501 Student Guide.docx"
 
     documents = load_docx(file_path)
-    # print(f"documents : {documents}")
     splits = split_documents(documents)
     vectorstore = create_vector_store(splits)
-    llm = setup_llm()  # need to use opeanai here
+    llm = setup_llm()
 
-    start_time = time.time()
     qa_chain = create_question_extraction_pipeline(vectorstore, llm)
     question = "List three key features of A New Tax System (GST) Act 1999."
     answer = answer_questions(qa_chain,question)

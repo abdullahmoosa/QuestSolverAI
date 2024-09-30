@@ -1,11 +1,16 @@
 nltk
 langchain
+langchain_text_splitters
+langchain-openai
 langchain-community
 langchain-core
 unstructured
+unstructured[all-docs]
+unstructured[docx,pptx]
 python-docx
 sentence-transformers
 transformers
 torch
 accelerate
 chromadb
+openai
