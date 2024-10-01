@@ -2,3 +2,7 @@
 .env
 **/__pycache__/**
 .DS_STORE
+
+answers_with_guidelines.txt
+answers.txt
+questions_and_answers.txt
