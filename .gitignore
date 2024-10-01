@@ -1,3 +1,6 @@
 .venv/
 .env
 **/__pycache__/**
+answers_with_guidelines.txt
+answers.txt
+questions_and_answers.txt

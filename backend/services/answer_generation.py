@@ -127,31 +127,31 @@ async def main():
     doc_service = DocumentService()
     pinecone_client = PineconeClient()
     answer_generation = AnswerGeneration()
-    # For embedding and then storing the vector embeddings
+    # For embedd∏ing and then storing the vector embeddings
     
-    index = await pinecone_client.create_index()
-    knowledge_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Student Guide.docx")
-    knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
-    vectors = await doc_service.generate_embeddings(knowledge_docs_chunks)
-    # print(vectors)
-    await pinecone_client.upsert_embeddings(vectors, index, namespace="knowledgebase")
+    # index = await pinecone_client.create_index()
+    # knowledge_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Student Guide.docx")
+    # knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
+    # vectors = await doc_service.generate_embeddings(knowledge_docs_chunks)
+    # # print(vectors)
+    # await pinecone_client.upsert_embeddings(vectors, index, namespace="knowledgebase")
 
-    knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
-    guidelines_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Assessor Marking Guide.docx")
-    guidelines_docs_chunks = doc_service.split_documents(guidelines_docs)
-    guideline_vectors = await doc_service.generate_embeddings(guidelines_docs_chunks)
-    await pinecone_client.upsert_embeddings(guideline_vectors, index, namespace="guidelines")
+    # knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
+    # guidelines_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Assessor Marking Guide.docx")
+    # guidelines_docs_chunks = doc_service.split_documents(guidelines_docs)
+    # guideline_vectors = await doc_service.generate_embeddings(guidelines_docs_chunks)
+    # await pinecone_client.upsert_embeddings(guideline_vectors, index, namespace="guidelines")
 
     # for retreiving answers
 
-    # answer_generation = AnswerGeneration()
+    answer_generation = AnswerGeneration()
     # answers = answer_generation.generate_answers(["Explain the basic principle of double entry bookkeeping?"])
 
-    # questions = doc_service.read_questions("questions.txt")
-    # answers_guidelines = answer_generation.generate_answers_using_guidelines(questions)
-    # doc_service.save_to_file(questions, answers_guidelines, "answers_with_guidelines.txt")
-    # answers = answer_generation.generate_answers(questions)
-    # doc_service.save_to_file(questions, answers, "answers.txt")
+    questions = doc_service.read_questions("questions.txt")
+    answers_guidelines = answer_generation.generate_answers_using_guidelines(questions)
+    doc_service.save_to_file(questions, answers_guidelines, "answers_with_guidelines.txt")
+    answers = answer_generation.generate_answers(questions)
+    doc_service.save_to_file(questions, answers, "answers.txt")
 
 
 if __name__ == "__main__":
