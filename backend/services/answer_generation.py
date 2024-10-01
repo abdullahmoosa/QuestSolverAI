@@ -26,6 +26,7 @@ class AnswerGeneration:
         self.llm = self._initialize_llm()
         self.knowledgebase = self._initialize_vectorstore(Config.PINECONE_KNOWLEDGEBASE_NAME)
         self.guidelines = self._initialize_vectorstore(Config.PINECONE_GUIDELINES_NAME)
+        self.project_guidelines = self._initialize_vectorstore(Config.PINECONE_PROJECT_GUIDELINES_NAME)
 
     def _initialize_llm(self) -> ChatOpenAI:
         """Initialize the OpenAI Chat LLM."""
@@ -67,12 +68,20 @@ class AnswerGeneration:
 
     def extract_guidelines(self, qa_chain, input):
         query = f"""
-        [INST] You are a guideline extraction chatbot. Based on the provided context, first analyze the whole context of the document and then extract the guidelines related to how to answer the question. Make it brief within 50 words. question:query: {input} [/INST]
+        [INST] You are a guideline extraction chatbot. Based on the provided context, first analyze the whole context of the document and then extract the guidelines related to how to answer the question. Make it brief within 50 words. If guideline does not exist, return guidline not available. question:query: {input} [/INST]
         """
 
         result = qa_chain.invoke({"query": query})
         return result["result"]
     
+    def extract_guidelines_from_template(self, qa_chain, template):
+        query = f"""
+        [INST] You are a guideline extraction chatbot from given template. Based on the provided context and the template, first analyze the whole context of the document and then extract the guidelines related to the given template. Return the guidelines in the given template format. Make it brief within 50 words. If guideline does not exist, return guidline not available. question:query: {template} [/INST]
+        """
+        result = qa_chain.invoke({"query": query})
+        return result["result"]
+
+
     def answer_questions_with_guidelines(self, qa_chain,input,guideline):
         query = f"""
         [INST] You are a question answering extraction chatbot. Based on the provided context, analyze the entire document, including headings and subheadings, then answer the questions following the guidelines.
@@ -129,17 +138,24 @@ async def main():
     # For embedding and then storing the vector embeddings
     
     index = await pinecone_client.create_index()
-    knowledge_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Student Guide.docx")
-    knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
-    vectors = await doc_service.generate_embeddings(knowledge_docs_chunks)
-    # print(vectors)
-    await pinecone_client.upsert_embeddings(vectors, index, namespace="knowledgebase")
+    # knowledge_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Student Guide.docx")
+    # knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
+    # vectors = await doc_service.generate_embeddings(knowledge_docs_chunks)
+    # # print(vectors)
+    # await pinecone_client.upsert_embeddings(vectors, index, namespace="knowledgebase")
 
-    knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
-    guidelines_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Assessor Marking Guide.docx")
-    guidelines_docs_chunks = doc_service.split_documents(guidelines_docs)
-    guideline_vectors = await doc_service.generate_embeddings(guidelines_docs_chunks)
-    await pinecone_client.upsert_embeddings(guideline_vectors, index, namespace="guidelines")
+    # knowledge_docs_chunks = doc_service.split_documents(knowledge_docs)
+    # guidelines_docs = doc_service.load_documents("docs/financial_data/BSBFIN501 Assessor Marking Guide.docx")
+    # guidelines_docs_chunks = doc_service.split_documents(guidelines_docs)
+    # guideline_vectors = await doc_service.generate_embeddings(guidelines_docs_chunks)
+    # await pinecone_client.upsert_embeddings(guideline_vectors, index, namespace="guidelines")
+    guidelines_docs_project = doc_service.load_documents("docs/SITXWHS006/SITXWHS006 WHS Plan Assessor Guidelines.docx")
+    guidelines_docs_project_chunks = doc_service.split_documents(guidelines_docs_project)
+    guideline_project_vectors = await doc_service.generate_embeddings(guidelines_docs_project_chunks)
+    await pinecone_client.upsert_embeddings(
+        guideline_project_vectors, 
+        index, 
+        namespace=Config.PINECONE_PROJECT_GUIDELINES_NAME)
 
     # for retreiving answers
 
