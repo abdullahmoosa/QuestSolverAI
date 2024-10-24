@@ -107,7 +107,7 @@ def create_vector_store(chunks):
 def setup_llm():
     # local_model = "llama3.1:latest"
     # llm = ChatOpenAI(temperature=0.00001)
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+    llm = ChatOpenAI(model="gpt-4o-2024-08-06", temperature=0,)
     return llm
 
 
@@ -125,13 +125,11 @@ def project_info_extraction_pipeline(vector_store, llm):
     # [/INST]
     # """
     query = """
-    You are a professional document analyzer. I am giving you a document that contains specific instructions and tasks. Please extract and organize the following information in a structured format:
+    You are a professional document analyzer. I am giving you a document that contains specific instructions and tasks. 
+    Please extract and organize the following information in a structured format:
 
     Scenario: Extract the project scenario with all the information without modification
 
-    Please provide the output in the following format:
-
-    Scenario: [Provide a summarized scenario]
     Be concise and to the point.
     """
     retriever = vector_store.as_retriever()
@@ -143,6 +141,30 @@ def project_info_extraction_pipeline(vector_store, llm):
 
     return result["result"]
 
+def project_activity_extraction_pipeline(vector_store, llm):
+    # query = """
+    # [INST] Based on the content of the document, extract the scenario and list down the activities with their requirements. For your help, document is structured like that:
+    # Scenario: {scenario}
+
+    # Make sure you didn't change any information
+    # [/INST]
+    # """
+    query = """
+    You are a professional document analyzer. I am giving you a document that contains specific activities.
+    Please extract and organize the following information in a structured format:
+
+    Activities: Extract the activities listed under Activities headline. Summarize to include only the vital information.
+    Activities: [Provide a list of activities]
+    Be concise and to the point.
+    """
+    retriever = vector_store.as_retriever()
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True
+    )
+
+    result = qa_chain.invoke({"query": query})
+
+    return result["result"]
 
 # def generate_project_output(llm, project_info):
 #     prompt = f"""
@@ -165,25 +187,114 @@ def project_info_extraction_pipeline(vector_store, llm):
 
 
 def generate_project_output(llm, project_info, template_content):
-    prompt = f"""
-    [INST] You are a creative scenario generator for project-based learning.Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. After generating the scenario, you have to complete the tasks by following the template structure. 
-    Project Information: {project_info}
-    Template Structure: {template_content}
+    # prompt = f"""
+    # [INST] You are a creative scenario generator for project-based learning.
+    # Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. 
+    # After generating the scenario, you have to complete the tasks by following the template structure. 
+    # Project Information: {project_info}
+    # Template Structure: {template_content}
     
 
+    # [/INST]
+    # """
+    prompt = f"""
+    [INST] You are a creative scenario generator for project-based learning.
+    Your task is to analyze the Scenario and then answer the activities mentioned the Project Information according to the scenario. 
+    If template is provided then use the template to answer the activities if it is suitable.
+    Project Information: {project_info}
+    Template Structure: {template_content}
     [/INST]
     """
     response = llm.invoke(prompt)
     return response.content
 
-def generate_project_output_with_guidelines_template(llm, project_info, template_content,guidelines):
+def generate_project_output_per_activities(llm, project_info, activities,template_content):
+    # prompt = f"""
+    # [INST] You are a creative scenario generator for project-based learning.
+    # Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. 
+    # After generating the scenario, you have to complete the tasks by following the template structure. 
+    # Project Information: {project_info}
+    # Template Structure: {template_content}
+    
+
+    # [/INST]
+    # """
     prompt = f"""
-    [INST] You are a creative scenario generator for project-based learning.Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. After generating the scenario, you have to complete the tasks by following the template structure. 
+    [INST] You are a creative scenario generator for project-based learning.
+    Your task is to answer the activities mentioned the Activities base on the extractted scenario in 'Project Information'. 
+    First understand the Project Information, Create a scenario. 
+    Think you are the organizer of the event. Now, analyze the scenario. 
+    Understand the conceptual meaning of each activities. If the activities ask you to discuss, access. Think of the activities as tasks assigned to you
+    Then think yourself as a owner discussing with others, get feed back from others hypothetically, include those in the answer of the activities. Answer chronologically and in details as possible according to each activity.
+    Use template.
+
+
+    Project Information: {project_info}
+    Activities : {activities}
+    template : {template_content}
+   
+    [/INST]
+    """
+    response = llm.invoke(prompt)
+    return response.content
+
+
+def generate_project_output_with_guidelines_template(llm, project_info, template_content,guidelines):
+    # prompt = f"""
+    # [INST] You are a creative scenario generator for project-based learning.
+    # Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. 
+    # After generating the scenario, you have to complete the tasks by following the template structure. 
+    # You will be given a sample extracted guidelines. You will answer similar to the guidelines but not exactly same.
+    # Project Information: {project_info}
+    # Template Structure: {template_content}
+    # Guidelines : {guidelines}
+
+    # [/INST]
+    # """
+
+    prompt = f"""
+    [INST] You are a creative scenario generator for project-based learning.
+    Your task is to analyze the Scenario and then answer the activities mentioned the Project Information according to the scenario. 
+    Answer using the provided template.
     You will be given a sample extracted guidelines. You will answer similar to the guidelines but not exactly same.
     Project Information: {project_info}
     Template Structure: {template_content}
     Guidelines : {guidelines}
 
+    output format :
+    Scenario: [Write the scenario]
+    Meeting Minutes : If asked to participate in a meeting with your assessor, provide draft meeting minutes for the meeting with the assesor.
+    Template: [Answer activities according to template]
+    
+    [/INST]
+    """
+    response = llm.invoke(prompt)
+    return response.content
+
+def generate_project_output_per_activities_with_guidelines_template(llm, project_info, activities,template_content, guidelines):
+    # prompt = f"""
+    # [INST] You are a creative scenario generator for project-based learning.
+    # Your task is to create or assume a detailed, elaborated, engaging scenario based on the provided project information and only include the scenario details. 
+    # After generating the scenario, you have to complete the tasks by following the template structure. 
+    # Project Information: {project_info}
+    # Template Structure: {template_content}
+    
+
+    # [/INST]
+    # """
+    prompt = f"""
+    [INST] You are a creative scenario generator for project-based learning.
+    Your task is to answer the activities mentioned the Activities base on the extractted scenario in Project Information. 
+    Provide detailed, elaborated, engaging scenario based on the provided project information per Activities and only include the scenario details. 
+    If, template is provided then use the template to answer the activities if it is suitable.
+    You will be given a sample extracted guidelines. You will answer similar to the guidelines but not exactly same.
+    Project Information: {project_info}
+    Activities : {activities}
+    Template Structure: {template_content}
+    Guidelines : {guidelines}
+    Output format :
+    Scenario: [Write the scenario]
+    Activities: [Write the activities and answer each of them]
     [/INST]
     """
     response = llm.invoke(prompt)
@@ -201,8 +312,11 @@ def main():
     llm = setup_llm()
     start_time = time.time()
     project_info = project_info_extraction_pipeline(vector_db, llm)
+    project_activities = project_activity_extraction_pipeline(vector_db, llm)
     markdown_content = docx_to_markdown(template_file)
     print(project_info)
+    print("-" * 40)
+    print(project_activities)
     print("-" * 40)
 
     qa_chain_project_guidelines = answer_generation.create_question_extraction_pipeline(
@@ -216,8 +330,16 @@ def main():
         file.write(extracted_guidelines)
     activity_llm = setup_activity_llm()
     # answer = generate_project_output(activity_llm, project_info, markdown_content)
-    answer = generate_project_output_with_guidelines_template(activity_llm, project_info, markdown_content, extracted_guidelines)
-    with open("output_01_oct_2024.md", "w") as file:
+    # answer = generate_project_output_with_guidelines_template(activity_llm, project_info, markdown_content, extracted_guidelines)
+    answer = generate_project_output_per_activities(activity_llm, project_info, project_activities, markdown_content)
+    # answer = generate_project_output_per_activities_with_guidelines_template(
+    #     llm=activity_llm,
+    #     project_info=project_info,
+    #     activities=project_activities,
+    #     template_content=markdown_content,
+    #     guidelines=extracted_guidelines
+    # )
+    with open("output_18_oct_2024.md", "w") as file:
         file.write(answer)
     end_time = time.time()
     print(f"Time spent: {(end_time-start_time)/60} minutes")
