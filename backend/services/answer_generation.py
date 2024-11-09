@@ -76,7 +76,9 @@ class AnswerGeneration:
     
     def extract_guidelines_from_template(self, qa_chain, template):
         query = f"""
-        [INST] You are a guideline extraction chatbot from given template. Based on the provided context and the template, first analyze the whole context of the document and then extract the guidelines related to the given template. Return the guidelines in the given template format. If guideline does not exist, return guidline not available. question:query: {template} [/INST]
+        [INST] You are a guideline extraction chatbot from given template. 
+        Based on the provided context and the template, first analyze the whole context of the document and then extract the guidelines related to the given template. 
+        Return the guidelines in the given template format. If guideline does not exist, return guidline not available. question:query: {template} [/INST]
         """
         result = qa_chain.invoke({"query": query})
         return result["result"]
