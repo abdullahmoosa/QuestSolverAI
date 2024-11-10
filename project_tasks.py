@@ -220,10 +220,8 @@ def generate_project_scenario(llm, project_info):
 
     response = llm.invoke(prompt)
     return response.content
-def process_single_activity(llm, activity, template, scenario,prev_activities):
+def process_single_activity(llm, activity, template, scenario,summarized_activities = None):
     """Process a single activity and generate output"""
-
-    prev_activities_str = "\n".join(prev_activities)
 
     prompt = f"""
     [INST] You are a very genious problem solver. You have the ability to understand the underlying things related to any context
@@ -234,7 +232,7 @@ def process_single_activity(llm, activity, template, scenario,prev_activities):
     Details: {activity['details']}
     Requirements: {activity['requirements']}
     template : {template}
-    Previous Activities: {prev_activities_str}
+    Previous Activities: {summarized_activities}
 
     When answering current Activity {activity['number']}, relate to the Previous Activities and the scenario.
     Output format:
@@ -276,6 +274,19 @@ def extract_information_from_student_guide(llm, student_guide_vector_db, activit
 
     result = qa_chain.invoke({"query": query})
     return result["result"]
+
+def summarize_activities(activities_text, llm):
+    activities_text_str = "\n".join(activities_text)
+    prompt = f"""
+    [INST] You are a professional document summarizer, Based on the given activities texts, summarize the activities.
+    Activities:
+    {activities_text_str}
+
+    [/INST]
+    """
+
+    response = llm.invoke(prompt)
+    return response.content
 
 def create_vector_db(file):
     document = load_docx(file)
@@ -331,10 +342,12 @@ def main():
     # Process each activity and save to separate files
     for activity in activities:
         print(f"\nProcessing Activity {activity['number']}...")
-        
+        summarized_activities = None
         # Generate content for this activity
-        output_content = process_single_activity(llm, activity, markdown_content, scenario, prev_activities)
+        output_content = process_single_activity(llm, activity, markdown_content, scenario, summarized_activities)
         prev_activities.append(output_content)
+        summarized_activities = summarize_activities(prev_activities, llm)
+        print(f"Summarized Activities: {summarized_activities}")
         
         # Save to individual file
         filename = f"output_activity_{activity['number']}.md"
